@@ -1,6 +1,10 @@
 """CPU functionality."""
 
 import sys
+LDI = 0b10000010 
+PRN = 0b01000111
+HLT = 0b00000001
+MUL = 0b10100010
 
 
 class CPU:
@@ -19,24 +23,19 @@ class CPU:
     def ram_write(self, MAR, MDR):
         self.ram[MAR] = MDR
 
-    def load(self):
+    def load(self, filename):
         """Load a program into memory."""
 
         address = 0
+        cleaned = []
+        for line in filename:
+            line1 = line.strip()
+            if not line1.startswith('#') and line1.strip():
+                line2 = line1.split('#', 1)[0]
+                cleaned.append(int(line2, 2))
+                print(line2)
 
-        # For now, we've just hardcoded a program:
-
-        program = [
-            # From print8.ls8
-            0b10000010,  # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111,  # PRN R0
-            0b00000000,
-            0b00000001,  # HLT
-        ]
-
-        for instruction in program:
+        for instruction in cleaned:
             self.ram[address] = instruction
             address += 1
 
@@ -46,6 +45,8 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         # elif op == "SUB": etc
+        elif op == "MUL":
+            self.reg[reg_a] *= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -78,6 +79,7 @@ class CPU:
     def hlt(self):
         sys.exit(0)
 
+
     def run(self):
         """Run the CPU."""
         # number of operands = inst value & 0b11000000 >> 6
@@ -85,6 +87,9 @@ class CPU:
         LDI = 0b10000010
         PRN = 0b01000111
         HLT = 0b00000001
+        MUL = 0b10100010
+
+
         running = True
         # self.trace()
         while running is True:
@@ -105,4 +110,8 @@ class CPU:
                 self.hlt()
                 self.pc += 1
                 running = False
+
+            elif inst == MUL:
+                self.alu("MUL", operand_a, operand_b)
+                self.pc += 3
 
