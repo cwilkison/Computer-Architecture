@@ -5,6 +5,8 @@ LDI = 0b10000010
 PRN = 0b01000111
 HLT = 0b00000001
 MUL = 0b10100010
+PUSH = 0b01000101
+POP = 0b01000110
 
 
 class CPU:
@@ -15,6 +17,7 @@ class CPU:
         self.pc = 0
         self.ram = [0] * 256
         self.reg = [0] * 8
+        self.sp = 7
 
 
     def ram_read(self, MAR):
@@ -28,12 +31,15 @@ class CPU:
 
         address = 0
         cleaned = []
+        # print(filename)
         for line in filename:
+            # print(line)
             line1 = line.strip()
             if not line1.startswith('#') and line1.strip():
                 line2 = line1.split('#', 1)[0]
+                # print(line2)
                 cleaned.append(int(line2, 2))
-                print(line2)
+                # print(line2)
 
         for instruction in cleaned:
             self.ram[address] = instruction
@@ -71,13 +77,29 @@ class CPU:
         print()
 
     def ldi(self, register, value):
+        print("ldi")
+        self.trace()
         self.reg[register] = value
+        self.trace()
 
     def prn(self, index):
+        print("prn")
+        self.trace()
         print(self.reg[index])
+        self.trace()
 
     def hlt(self):
         sys.exit(0)
+
+    def push(self, operand_a, operand_b):
+        self.sp -= 1
+        self.ram_write(self.sp, self.reg[operand_a])
+        self.pc += 2
+    
+    def pop(self, operand_a, operand_b):
+        self.reg[operand_a] = self.ram_read(self.sp)
+        self.sp += 1
+        self.pc += 2
 
 
     def run(self):
@@ -88,6 +110,8 @@ class CPU:
         PRN = 0b01000111
         HLT = 0b00000001
         MUL = 0b10100010
+        PUSH = 0b01000101
+        POP = 0b01000110
 
 
         running = True
@@ -114,4 +138,13 @@ class CPU:
             elif inst == MUL:
                 self.alu("MUL", operand_a, operand_b)
                 self.pc += 3
+            
+            elif inst == PUSH:
+                self.push(operand_a, operand_b)
 
+            elif inst == POP:
+                self.pop(operand_a, operand_b)
+                
+            else:
+                print("unknown instruction")
+                running = False
