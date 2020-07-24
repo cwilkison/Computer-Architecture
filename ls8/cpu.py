@@ -7,6 +7,9 @@ HLT = 0b00000001
 MUL = 0b10100010
 PUSH = 0b01000101
 POP = 0b01000110
+CALL = 0b01010000
+RET = 0b00010001
+ADD = 0b10100000
 
 
 class CPU:
@@ -77,16 +80,10 @@ class CPU:
         print()
 
     def ldi(self, register, value):
-        print("ldi")
-        self.trace()
         self.reg[register] = value
-        self.trace()
 
     def prn(self, index):
-        print("prn")
-        self.trace()
         print(self.reg[index])
-        self.trace()
 
     def hlt(self):
         sys.exit(0)
@@ -101,6 +98,14 @@ class CPU:
         self.sp += 1
         self.pc += 2
 
+    def call(self, operand_a):
+        self.reg[7] -= 1
+        self.ram[self.reg[7]] = self.pc + 2
+        self.pc = self.reg[operand_a]
+
+    def ret(self):
+        self.pc = self.ram[self.reg[7]]
+        self.reg[7] += 1
 
     def run(self):
         """Run the CPU."""
@@ -112,6 +117,10 @@ class CPU:
         MUL = 0b10100010
         PUSH = 0b01000101
         POP = 0b01000110
+        CALL = 0b01010000
+        RET = 0b00010001
+        ADD = 0b10100000
+        
 
 
         running = True
@@ -138,13 +147,24 @@ class CPU:
             elif inst == MUL:
                 self.alu("MUL", operand_a, operand_b)
                 self.pc += 3
+
+            elif inst == ADD:
+                self.alu("ADD", operand_a, operand_b)
+                self.pc += 3
             
             elif inst == PUSH:
                 self.push(operand_a, operand_b)
 
             elif inst == POP:
                 self.pop(operand_a, operand_b)
+            
+            elif inst == CALL:
+                self.call(operand_a)
+            
+            elif inst == RET:
+                self.ret()
                 
             else:
                 print("unknown instruction")
+                print(bin(inst))
                 running = False
