@@ -11,6 +11,10 @@ CALL = 0b01010000
 RET = 0b00010001
 ADD = 0b10100000
 
+lesser = 0b100
+greater = 0b010
+equal = 0b001
+
 
 class CPU:
     """Main CPU class."""
@@ -21,6 +25,8 @@ class CPU:
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.sp = 7
+        self.flag = 0
+
 
 
     def ram_read(self, MAR):
@@ -56,6 +62,13 @@ class CPU:
         # elif op == "SUB": etc
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "CMP":
+            if self.reg[reg_a] < self.reg[reg_b]:
+                self.flag = lesser
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                self.flag = greater
+            elif self.reg[reg_a] == self.reg[reg_b]:
+                self.flag = equal
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -106,6 +119,26 @@ class CPU:
     def ret(self):
         self.pc = self.ram[self.reg[7]]
         self.reg[7] += 1
+    
+    # if equal flag is true, jump to the address stored in register
+    # set pc as address
+    def jeq(self, operand_a):
+        if self.flag == 1:
+            self.pc = self.reg[operand_a]
+        else:
+            self.pc += 2
+
+    # jump to address stored in register, set pc as address
+    def jmp(self, operand_a):
+        self.pc = self.reg[operand_a]
+
+    # if equal flag is clear/false, jump to address stored in register
+    # set pc as address
+    def jne(self, operand_a):
+        if self.flag != 1:
+            self.pc = self.reg[operand_a]
+        else:
+            self.pc += 2
 
     def run(self):
         """Run the CPU."""
@@ -120,6 +153,10 @@ class CPU:
         CALL = 0b01010000
         RET = 0b00010001
         ADD = 0b10100000
+        CMP = 0b10100111
+        JMP = 0b01010100
+        JEQ = 0b01010101
+        JNE = 0b01010110
         
 
 
@@ -163,7 +200,20 @@ class CPU:
             
             elif inst == RET:
                 self.ret()
-                
+            
+            elif inst == JEQ:
+                self.jeq(operand_a)
+            
+            elif inst == JMP:
+                self.jmp(operand_a)
+
+            elif inst == JNE:
+                self.jne(operand_a)
+
+            elif inst == CMP:
+                self.alu("CMP", operand_a, operand_b)
+                self.pc += 3
+
             else:
                 print("unknown instruction")
                 print(bin(inst))
