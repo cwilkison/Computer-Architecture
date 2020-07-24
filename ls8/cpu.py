@@ -7,6 +7,13 @@ HLT = 0b00000001
 MUL = 0b10100010
 PUSH = 0b01000101
 POP = 0b01000110
+CALL = 0b01010000
+RET = 0b00010001
+ADD = 0b10100000
+
+lesser = 0b100
+greater = 0b010
+equal = 0b001
 
 
 class CPU:
@@ -18,6 +25,8 @@ class CPU:
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.sp = 7
+        self.flag = 0
+
 
 
     def ram_read(self, MAR):
@@ -53,6 +62,13 @@ class CPU:
         # elif op == "SUB": etc
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "CMP":
+            if self.reg[reg_a] < self.reg[reg_b]:
+                self.flag = lesser
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                self.flag = greater
+            elif self.reg[reg_a] == self.reg[reg_b]:
+                self.flag = equal
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -77,16 +93,10 @@ class CPU:
         print()
 
     def ldi(self, register, value):
-        print("ldi")
-        self.trace()
         self.reg[register] = value
-        self.trace()
 
     def prn(self, index):
-        print("prn")
-        self.trace()
         print(self.reg[index])
-        self.trace()
 
     def hlt(self):
         sys.exit(0)
@@ -101,6 +111,34 @@ class CPU:
         self.sp += 1
         self.pc += 2
 
+    def call(self, operand_a):
+        self.reg[7] -= 1
+        self.ram[self.reg[7]] = self.pc + 2
+        self.pc = self.reg[operand_a]
+
+    def ret(self):
+        self.pc = self.ram[self.reg[7]]
+        self.reg[7] += 1
+    
+    # if equal flag is true, jump to the address stored in register
+    # set pc as address
+    def jeq(self, operand_a):
+        if self.flag == 1:
+            self.pc = self.reg[operand_a]
+        else:
+            self.pc += 2
+
+    # jump to address stored in register, set pc as address
+    def jmp(self, operand_a):
+        self.pc = self.reg[operand_a]
+
+    # if equal flag is clear/false, jump to address stored in register
+    # set pc as address
+    def jne(self, operand_a):
+        if self.flag != 1:
+            self.pc = self.reg[operand_a]
+        else:
+            self.pc += 2
 
     def run(self):
         """Run the CPU."""
@@ -112,6 +150,14 @@ class CPU:
         MUL = 0b10100010
         PUSH = 0b01000101
         POP = 0b01000110
+        CALL = 0b01010000
+        RET = 0b00010001
+        ADD = 0b10100000
+        CMP = 0b10100111
+        JMP = 0b01010100
+        JEQ = 0b01010101
+        JNE = 0b01010110
+        
 
 
         running = True
@@ -138,13 +184,37 @@ class CPU:
             elif inst == MUL:
                 self.alu("MUL", operand_a, operand_b)
                 self.pc += 3
+
+            elif inst == ADD:
+                self.alu("ADD", operand_a, operand_b)
+                self.pc += 3
             
             elif inst == PUSH:
                 self.push(operand_a, operand_b)
 
             elif inst == POP:
                 self.pop(operand_a, operand_b)
-                
+            
+            elif inst == CALL:
+                self.call(operand_a)
+            
+            elif inst == RET:
+                self.ret()
+            
+            elif inst == JEQ:
+                self.jeq(operand_a)
+            
+            elif inst == JMP:
+                self.jmp(operand_a)
+
+            elif inst == JNE:
+                self.jne(operand_a)
+
+            elif inst == CMP:
+                self.alu("CMP", operand_a, operand_b)
+                self.pc += 3
+
             else:
                 print("unknown instruction")
+                print(bin(inst))
                 running = False
